@@ -276,7 +276,7 @@ export function App() {
             title="Replay the Dragon Awakening Loader Ceremony"
           >
             <Sparkles size={15} />
-            <span>Play intro</span>
+            <span>Replay Intro</span>
           </button>
           <button
             type="button"
@@ -306,43 +306,6 @@ export function App() {
           </div>
 
           <div className="hero-grid">
-            {/* Event essentials and the next action come before decorative artwork. */}
-            <div className="hero-copy-col">
-              <div className="eyebrow-pill">
-                <span className="pulse-dot" />
-                <span>IBF WORLD CHAMPIONSHIP</span>
-              </div>
-
-              <h1 id="event-title" className="hero-headline">
-                <span className="headline-dragon">DRAGONBAL</span>
-                <span className="headline-year">2028 • SAIGON</span>
-              </h1>
-
-              <div className="event-essentials">
-                <p>
-                  <Calendar size={17} aria-hidden="true" /> <strong>1–5 March 2028</strong>
-                  <span className="essentials-sep" aria-hidden="true">•</span>
-                  <MapPin size={17} aria-hidden="true" /> <span>Saigon, Vietnam</span>
-                </p>
-              </div>
-
-              <p className="hero-lead">
-                Five sacred dice in the heart of Ho Chi Minh City. Save the dates — registration
-                and programme details coming soon.
-              </p>
-
-              <div className="hero-cta-row">
-                <button
-                  type="button"
-                  onClick={handleShareEvent}
-                  className="btn-secondary-saigon"
-                >
-                  <Share2 size={17} />
-                  <span>Share the event</span>
-                </button>
-              </div>
-              <p className="share-feedback" role="status">{shareFeedback}</p>
-            </div>
             {/* Left/Center Column: Official Emblem Medallion with Orbiting Rings */}
             <div className="hero-emblem-stage">
               <div
@@ -411,6 +374,45 @@ export function App() {
                   <span>1st – 5th March 2028</span>
                 </div>
               </div>
+            </div>
+            {/* Event essentials and the next action come before decorative artwork. */}
+            <div className="hero-copy-col">
+              <div className="eyebrow-pill">
+                <span className="pulse-dot" />
+                <span>IBF WORLD CHAMPIONSHIP • VM I BALUT</span>
+              </div>
+
+              <h1 id="event-title" className="hero-headline">
+                <span className="headline-dragon">DRAGONBAL</span>
+                <span className="headline-year">2028 • SAIGON</span>
+              </h1>
+
+              <div className="event-essentials">
+                <p>
+                  <Calendar size={17} aria-hidden="true" /> <strong>1–5 March 2028</strong>
+                  <span className="essentials-sep" aria-hidden="true">•</span>
+                  <MapPin size={17} aria-hidden="true" /> <span>Saigon, Vietnam</span>
+                </p>
+              </div>
+
+              <p className="hero-lead">
+                Where five sacred dice meet the electric soul of{' '}
+                <strong>Ho Chi Minh City (Saigon), Vietnam</strong>. Five unforgettable days
+                of championship Balut, emerald dragons, rooftop skylines, river cruises, and
+                legendary fellowship from <strong>1st to 5th March 2028</strong>.
+              </p>
+
+              <div className="hero-cta-row">
+                <button
+                  type="button"
+                  onClick={handleShareEvent}
+                  className="btn-secondary-saigon"
+                >
+                  <Share2 size={17} />
+                  <span>Share the event</span>
+                </button>
+              </div>
+              <p className="share-feedback" role="status">{shareFeedback}</p>
             </div>
 
           </div>
