@@ -15,34 +15,14 @@ interface Particle {
 
 const COLORS = ['#FACC15', '#F97316', '#EF4444', '#10B981', '#FDE047'];
 
-export const DragonCanvas: React.FC<{ burstTrigger: number }> = ({ burstTrigger }) => {
+export const DragonCanvas: React.FC<{ burstTrigger: number; paused?: boolean }> = ({
+  burstTrigger,
+  paused = false,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const particlesRef = useRef<Particle[]>([]);
-
-  // Trigger a celebratory burst of dragon fire when burstTrigger increments
-  useEffect(() => {
-    if (burstTrigger === 0) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const cx = canvas.width / 2;
-    const cy = canvas.height * 0.45;
-    for (let i = 0; i < 85; i++) {
-      const angle = (Math.PI * 2 * i) / 85 + (Math.random() - 0.5) * 0.3;
-      const speed = 2.5 + Math.random() * 8.5;
-      particlesRef.current.push({
-        x: cx,
-        y: cy,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 1.5,
-        size: 3 + Math.random() * 6,
-        color: COLORS[i % COLORS.length],
-        alpha: 1,
-        life: 0,
-        maxLife: 50 + Math.random() * 45,
-        type: 'burst',
-      });
-    }
-  }, [burstTrigger]);
+  const burstRef = useRef<(() => void) | null>(null);
+  const lastBurstRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -50,34 +30,48 @@ export const DragonCanvas: React.FC<{ burstTrigger: number }> = ({ burstTrigger 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    let rafId: number | null = null;
+    let active = false;
+    let disposed = false;
+    let trackingPointer = false;
+
+    const canAnimate = () => !disposed && !paused && !reducedMotion.matches && !document.hidden;
+    const isPhone = () => canvas.width <= 640;
+    const clear = () => {
+      particlesRef.current = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+    const seed = () => {
+      const initialCount = Math.min(isPhone() ? 10 : 55, Math.floor(canvas.width / (isPhone() ? 48 : 24)));
+      particlesRef.current = Array.from({ length: initialCount }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: -0.35 - Math.random() * 0.65,
+        size: 1.8 + Math.random() * 3.8,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        alpha: 0.25 + Math.random() * 0.55,
+        life: Math.random() * 100,
+        maxLife: 200 + Math.random() * 200,
+        type: Math.random() > 0.7 ? 'orb' : 'ember',
+      }));
+    };
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      if (active) seed();
     };
     resize();
-    window.addEventListener('resize', resize);
 
-    // Seed ambient Saigon night sky embers & lotus orbs
-    const initialCount = Math.min(55, Math.floor(window.innerWidth / 24));
-    particlesRef.current = Array.from({ length: initialCount }, () => ({
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      vx: (Math.random() - 0.5) * 0.45,
-      vy: -0.35 - Math.random() * 0.65,
-      size: 1.8 + Math.random() * 3.8,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      alpha: 0.25 + Math.random() * 0.55,
-      life: Math.random() * 100,
-      maxLife: 200 + Math.random() * 200,
-      type: Math.random() > 0.7 ? 'orb' : 'ember',
-    }));
-
-    const onPointerMove = (e: MouseEvent) => {
-      if (particlesRef.current.length > 180) return;
+    const onPointerMove = (event: PointerEvent) => {
+      if (!canAnimate() || !finePointer.matches || event.pointerType !== 'mouse') return;
+      if (particlesRef.current.length > (isPhone() ? 80 : 180)) return;
       for (let i = 0; i < 2; i++) {
         particlesRef.current.push({
-          x: e.clientX + (Math.random() - 0.5) * 14,
-          y: e.clientY + (Math.random() - 0.5) * 14,
+          x: event.clientX + (Math.random() - 0.5) * 14,
+          y: event.clientY + (Math.random() - 0.5) * 14,
           vx: (Math.random() - 0.5) * 1.6,
           vy: -0.8 - Math.random() * 1.4,
           size: 2 + Math.random() * 3.5,
@@ -89,10 +83,30 @@ export const DragonCanvas: React.FC<{ burstTrigger: number }> = ({ burstTrigger 
         });
       }
     };
-    window.addEventListener('mousemove', onPointerMove, { passive: true });
+    const syncPointer = () => {
+      const shouldTrack = active && canAnimate() && finePointer.matches;
+      if (shouldTrack === trackingPointer) return;
+      trackingPointer = shouldTrack;
+      if (shouldTrack) {
+        window.addEventListener('pointermove', onPointerMove, { passive: true });
+      } else {
+        window.removeEventListener('pointermove', onPointerMove);
+      }
+    };
+    const stop = () => {
+      active = false;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = null;
+      syncPointer();
+      clear();
+    };
 
-    let rafId = 0;
     const render = () => {
+      rafId = null;
+      if (!canAnimate()) {
+        stop();
+        return;
+      }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const list = particlesRef.current;
@@ -135,15 +149,62 @@ export const DragonCanvas: React.FC<{ burstTrigger: number }> = ({ burstTrigger 
 
       rafId = requestAnimationFrame(render);
     };
+    const syncAnimation = () => {
+      if (!canAnimate()) {
+        stop();
+        return;
+      }
+      if (!active) {
+        active = true;
+        seed();
+        rafId = requestAnimationFrame(render);
+      }
+      syncPointer();
+    };
 
-    rafId = requestAnimationFrame(render);
+    burstRef.current = () => {
+      if (!canAnimate() || !active) return;
+      const count = isPhone() ? 36 : 85;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
+        const speed = 2.5 + Math.random() * 8.5;
+        particlesRef.current.push({
+          x: canvas.width / 2,
+          y: canvas.height * 0.45,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.5,
+          size: 3 + Math.random() * 6,
+          color: COLORS[i % COLORS.length],
+          alpha: 1,
+          life: 0,
+          maxLife: 50 + Math.random() * 45,
+          type: 'burst',
+        });
+      }
+    };
+
+    window.addEventListener('resize', resize);
+    document.addEventListener('visibilitychange', syncAnimation);
+    reducedMotion.addEventListener('change', syncAnimation);
+    finePointer.addEventListener('change', syncPointer);
+    syncAnimation();
 
     return () => {
-      cancelAnimationFrame(rafId);
+      disposed = true;
+      stop();
+      burstRef.current = null;
       window.removeEventListener('resize', resize);
-      window.removeEventListener('mousemove', onPointerMove);
+      document.removeEventListener('visibilitychange', syncAnimation);
+      reducedMotion.removeEventListener('change', syncAnimation);
+      finePointer.removeEventListener('change', syncPointer);
     };
-  }, []);
+  }, [paused]);
+
+  useEffect(() => {
+    if (burstTrigger === lastBurstRef.current) return;
+    lastBurstRef.current = burstTrigger;
+    if (burstTrigger !== 0) burstRef.current?.();
+  }, [burstTrigger]);
 
   return <canvas ref={canvasRef} className="dragon-particle-canvas" aria-hidden="true" />;
 };

@@ -1,24 +1,20 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Flame,
   Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Maximize2,
   Sparkles,
   Calendar,
   MapPin,
   Dices,
   RotateCcw,
   Share2,
-  Check,
   Compass,
   Trophy,
   Film,
 } from 'lucide-react';
 import { DragonCanvas } from './components/DragonCanvas';
 import { DragonLoader } from './components/DragonLoader';
+import { SaigonFilm } from './components/SaigonFilm';
 import {
   BalutDieSvg,
   DongSonDrumSvg,
@@ -30,72 +26,6 @@ import {
 // Target: 1st March 2028, 09:00:00 Saigon Time (UTC+7)
 const EVENT_START_MS = new Date('2028-03-01T09:00:00+07:00').getTime();
 
-interface VideoChapter {
-  id: string;
-  title: string;
-  vietnamese: string;
-  timeSec: number;
-  timeLabel: string;
-  thumb: string;
-  desc: string;
-}
-
-const VIDEO_CHAPTERS: VideoChapter[] = [
-  {
-    id: 'skyline',
-    title: 'Mekong & Landmark 81',
-    vietnamese: 'Toàn Cảnh Sài Gòn',
-    timeSec: 4,
-    timeLabel: '0:04',
-    thumb: '/assets/scene-skyline.jpg',
-    desc: 'Soaring above the Saigon River toward towering Landmark 81.',
-  },
-  {
-    id: 'heritage',
-    title: 'Notre-Dame & Scooters',
-    vietnamese: 'Nhà Thờ Đức Bà',
-    timeSec: 17,
-    timeLabel: '0:17',
-    thumb: '/assets/scene-heritage.jpg',
-    desc: 'Iconic red-brick cathedral spires and the electric pulse of Saigon.',
-  },
-  {
-    id: 'streetfood',
-    title: 'Saigon Street Feast',
-    vietnamese: 'Ẩm Thực Đường Phố',
-    timeSec: 35,
-    timeLabel: '0:35',
-    thumb: '/assets/scene-streetfood.jpg',
-    desc: 'Steaming Bánh Cuốn, Gỏi Cuốn, and night-market culinary magic.',
-  },
-  {
-    id: 'fellowship',
-    title: 'IBF Brotherhood',
-    vietnamese: 'Hội Ngộ Quốc Tế',
-    timeSec: 50,
-    timeLabel: '0:50',
-    thumb: '/assets/scene-fellowship.jpg',
-    desc: 'Cold brews, cà phê sữa đá, and camaraderie on Saigon avenues.',
-  },
-  {
-    id: 'nightcruise',
-    title: 'Saigon River Gala Cruise',
-    vietnamese: 'Du Thuyền Sông Sài Gòn',
-    timeSec: 67,
-    timeLabel: '1:07',
-    thumb: '/assets/scene-nightcruise.jpg',
-    desc: 'Gliding across neon-lit waters under the glittering skyline.',
-  },
-  {
-    id: 'welcome',
-    title: 'Grand Championship Welcome',
-    vietnamese: 'Chào Mừng Quý Khách',
-    timeSec: 84,
-    timeLabel: '1:24',
-    thumb: '/assets/scene-welcome.jpg',
-    desc: 'Five-star Vietnamese hospitality awaiting every qualifier in 2028.',
-  },
-];
 
 function evaluateBalutHand(dice: number[]): { rank: string; subtitle: string; isJackpot: boolean } {
   const counts: Record<number, number> = {};
@@ -160,9 +90,10 @@ function evaluateBalutHand(dice: number[]): { rank: string; subtitle: string; is
 }
 
 export function App() {
-  const [showLoader, setShowLoader] = useState(true);
+  const [showLoader, setShowLoader] = useState(false);
   const [burstCount, setBurstCount] = useState(0);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState('');
+  const closeIntro = useCallback(() => setShowLoader(false), []);
 
   // Countdown state
   const [timeLeft, setTimeLeft] = useState(() => {
@@ -175,13 +106,7 @@ export function App() {
     };
   });
 
-  // Video player state
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(94.8);
-  const [activeChapter, setActiveChapter] = useState<string>('skyline');
 
   // 3D Tilt on Hero Medallion
   const [medallionTilt, setMedallionTilt] = useState({ rx: 0, ry: 0 });
@@ -210,42 +135,6 @@ export function App() {
     setBurstCount((c) => c + 1);
   };
 
-  const togglePlay = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.paused) {
-      v.play();
-      setIsPlaying(true);
-      triggerDragonFire();
-    } else {
-      v.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  const toggleMute = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = !v.muted;
-    setIsMuted(v.muted);
-  };
-
-  const jumpToChapter = (chapter: VideoChapter) => {
-    const v = videoRef.current;
-    setActiveChapter(chapter.id);
-    if (!v) return;
-    v.currentTime = chapter.timeSec;
-    v.play();
-    setIsPlaying(true);
-  };
-
-  const openFullscreen = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.requestFullscreen) {
-      v.requestFullscreen();
-    }
-  };
 
   const handleRollDice = () => {
     if (isRolling) return;
@@ -291,22 +180,34 @@ export function App() {
     }, 320);
   };
 
-  const handleCopyShareLink = () => {
-    navigator.clipboard?.writeText(window.location.href);
-    setCopiedLink(true);
-    triggerDragonFire();
-    setTimeout(() => setCopiedLink(false), 2400);
+  const handleShareEvent = async () => {
+    setShareFeedback('');
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Dragonbal 2028 · Saigon, Vietnam',
+          text: 'IBF World Championship · 1–5 March 2028. See you in Saigon!',
+          url: window.location.href.split('#')[0],
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href.split('#')[0]);
+        setShareFeedback('Event link copied. Send it to your fellow players!');
+      }
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        setShareFeedback('To share the event, copy this page’s address from your browser.');
+      }
+    }
   };
 
   const handEvaluation = evaluateBalutHand(dice);
 
   return (
-    <div className="saigon-page-shell">
-      {/* Ceremony Preloader */}
-      {showLoader && <DragonLoader onComplete={() => setShowLoader(false)} />}
+    <div className={`saigon-page-shell${isPlaying ? ' film-is-playing' : ''}`}>
+      {/* Keep the ceremony available without blocking a visitor’s first step. */}
+      {showLoader && <DragonLoader onComplete={closeIntro} />}
 
-      {/* Interactive Dragon Embers & Firework Canvas */}
-      <DragonCanvas burstTrigger={burstCount} />
+      <DragonCanvas burstTrigger={burstCount} paused={isPlaying || showLoader} />
 
       {/* Hanging Vietnamese Silk Lanterns Canopy */}
       <div className="lantern-canopy" aria-hidden="true">
@@ -332,7 +233,7 @@ export function App() {
 
       {/* Top Navigation Bar */}
       <header className="top-nav">
-        <div className="nav-brand">
+        <a href="#welcome" className="nav-brand" aria-label="Dragonbal 2028 · Back to welcome">
           <img
             src="/assets/dragon-head.png"
             alt="Dragonbal Mascot"
@@ -342,17 +243,17 @@ export function App() {
             <span className="nav-title">DRAGONBAL 2028</span>
             <span className="nav-subtitle">SAIGON ★ VIETNAM • IBF VM</span>
           </div>
-        </div>
+        </a>
 
-        <nav className="nav-links">
-          <a href="#promo-video" className="nav-link">
-            <Film size={15} /> Official Video
-          </a>
-          <a href="#balut-roller" className="nav-link">
-            <Dices size={15} /> Roll Balut
+        <nav className="nav-links" aria-label="Explore Dragonbal 2028">
+          <a href="#promo-video" className="nav-link nav-watch">
+            <Film size={16} /> Watch film
           </a>
           <a href="#saigon-2028" className="nav-link">
-            <Compass size={15} /> Saigon 2028
+            <Compass size={16} /> Discover Saigon
+          </a>
+          <a href="#balut-roller" className="nav-link">
+            <Dices size={16} /> Roll for fun
           </a>
         </nav>
 
@@ -360,11 +261,12 @@ export function App() {
           <button
             type="button"
             onClick={() => setShowLoader(true)}
+            disabled={isPlaying}
             className="btn-ghost-gold"
             title="Replay the Dragon Awakening Loader Ceremony"
           >
             <Sparkles size={15} />
-            <span>Replay Intro</span>
+            <span>Play intro</span>
           </button>
           <button
             type="button"
@@ -379,7 +281,7 @@ export function App() {
 
       {/* HERO SECTION */}
       <main>
-        <section className="hero-section">
+        <section id="welcome" className="hero-section" aria-labelledby="event-title">
           {/* Background Rotating Dong Son Bronze Drum */}
           <div className="hero-drum-bg" aria-hidden="true">
             <DongSonDrumSvg className="spin-ultra-slow" />
@@ -394,6 +296,48 @@ export function App() {
           </div>
 
           <div className="hero-grid">
+            {/* Event essentials and the next action come before decorative artwork. */}
+            <div className="hero-copy-col">
+              <div className="eyebrow-pill">
+                <span className="pulse-dot" />
+                <span>IBF WORLD CHAMPIONSHIP</span>
+              </div>
+
+              <h1 id="event-title" className="hero-headline">
+                <span className="headline-dragon">DRAGONBAL</span>
+                <span className="headline-year">2028 • SAIGON</span>
+              </h1>
+
+              <div className="event-essentials">
+                <p><Calendar size={18} aria-hidden="true" /> <strong>1–5 March 2028</strong></p>
+                <p><MapPin size={18} aria-hidden="true" /> Saigon · Ho Chi Minh City, Vietnam</p>
+              </div>
+
+              <p className="hero-lead">
+                Five dice. One unforgettable city. Join the world of Balut in the heart
+                of Vietnam — start with a little Saigon magic.
+              </p>
+
+              {/* Action CTA Row */}
+              <div className="hero-cta-row">
+                <a href="#promo-video" className="btn-primary-saigon">
+                  <Play size={18} fill="currentColor" />
+                  <span>Watch the film <span className="cta-duration">· 1:35</span></span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={handleShareEvent}
+                  className="btn-secondary-saigon"
+                >
+                  <Share2 size={17} />
+                  <span>Share the event</span>
+                </button>
+              </div>
+              <p className="event-status">Save the dates. Registration and programme details coming soon.</p>
+              <p className="share-feedback" role="status">{shareFeedback}</p>
+
+            </div>
             {/* Left/Center Column: Official Emblem Medallion with Orbiting Rings */}
             <div className="hero-emblem-stage">
               <div
@@ -464,59 +408,48 @@ export function App() {
               </div>
             </div>
 
-            {/* Right Column: Event Title, Vietnamese Art Typography, CTAs & Live Countdown */}
-            <div className="hero-copy-col">
-              <div className="eyebrow-pill">
-                <span className="pulse-dot" />
-                <span>IBF WORLD CHAMPIONSHIP • VM I BALUT</span>
+          </div>
+        </section>
+
+        {/* ANIMATED TICKER RIBBON */}
+        <div className="dragon-marquee" aria-hidden="true">
+          <div className="dragon-marquee-track">
+            {Array.from({ length: 2 }).map((_, loopIdx) => (
+              <div key={loopIdx} className="dragon-marquee-group">
+                <span>🐉 DRAGONBAL 2028</span>
+                <span>★ SAIGON • VIETNAM ★</span>
+                <span>🎲 1ST – 5TH MARCH 2028</span>
+                <span>🏮 IBF WORLD CHAMPIONSHIP</span>
+                <span>🥂 CHÀO MỪNG ĐẾN SÀI GÒN</span>
+                <span>🔥 FIVE DICE • ONE DRAGON CROWN</span>
               </div>
+            ))}
+          </div>
+        </div>
 
-              <h1 className="hero-headline">
-                <span className="headline-dragon">DRAGONBAL</span>
-                <span className="headline-year">2028 • SAIGON</span>
-              </h1>
+        {/* OFFICIAL SAIGON PROMO VIDEO SHOWCASE */}
+        <section id="promo-video" className="video-showcase-section" aria-labelledby="film-title">
+          <div className="section-header">
+            <div className="section-tag">01 · WATCH THE FILM</div>
+            <h2 id="film-title" className="section-title">A little Saigon magic</h2>
+            <p className="section-desc">
+              A 95-second taste of our host city, from street food to the Saigon River.
+              Tap play and enjoy the welcome.
+            </p>
+          </div>
 
-              <p className="hero-lead">
-                Where five sacred dice meet the electric soul of{' '}
-                <strong>Ho Chi Minh City (Saigon), Vietnam</strong>. Five unforgettable days
-                of championship Balut, emerald dragons, rooftop skylines, river cruises, and
-                legendary fellowship from <strong>1st to 5th March 2028</strong>.
-              </p>
-
-              {/* Action CTA Row */}
-              <div className="hero-cta-row">
-                <a
-                  href="#promo-video"
-                  className="btn-primary-saigon"
-                  onClick={() => {
-                    const v = videoRef.current;
-                    if (v && v.paused) {
-                      setTimeout(() => {
-                        v.play();
-                        setIsPlaying(true);
-                      }, 300);
-                    }
-                  }}
-                >
-                  <Play size={18} fill="currentColor" />
-                  <span>Watch Saigon Promo Video</span>
-                </a>
-
-                <button
-                  type="button"
-                  onClick={handleCopyShareLink}
-                  className="btn-secondary-saigon"
-                >
-                  {copiedLink ? <Check size={17} /> : <Share2 size={17} />}
-                  <span>{copiedLink ? 'Link Copied for Tri!' : 'Share dragonbal2028.com'}</span>
-                </button>
-              </div>
-
+          <SaigonFilm onPlaybackChange={setIsPlaying} />
+          <div className="film-followup">
+            <a href="#saigon-2028" className="section-next-link">
+              Next: discover Saigon <span aria-hidden="true">→</span>
+            </a>
+          </div>
+          <div className="event-countdown">
               {/* Live Countdown to 1st March 2028 */}
               <div className="countdown-panel">
                 <div className="countdown-header">
                   <span className="countdown-label">
-                    <MapPin size={14} /> COUNTDOWN TO FIRST ROLL IN SAIGON (UTC+7)
+                    <MapPin size={14} /> COUNTDOWN TO MARCH 2028
                   </span>
                   <span className="countdown-target">01.03.2028</span>
                 </div>
@@ -546,179 +479,88 @@ export function App() {
                   </div>
                 </div>
               </div>
-            </div>
           </div>
         </section>
 
-        {/* ANIMATED TICKER RIBBON */}
-        <div className="dragon-marquee" aria-hidden="true">
-          <div className="dragon-marquee-track">
-            {Array.from({ length: 2 }).map((_, loopIdx) => (
-              <div key={loopIdx} className="dragon-marquee-group">
-                <span>🐉 DRAGONBAL 2028</span>
-                <span>★ SAIGON • VIETNAM ★</span>
-                <span>🎲 1ST – 5TH MARCH 2028</span>
-                <span>🏮 IBF WORLD CHAMPIONSHIP</span>
-                <span>🥂 CHÀO MỪNG ĐẾN SÀI GÒN</span>
-                <span>🔥 FIVE DICE • ONE DRAGON CROWN</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* OFFICIAL SAIGON PROMO VIDEO SHOWCASE */}
-        <section id="promo-video" className="video-showcase-section">
+        {/* ANIMATED SAIGON SKYLINE & 2028 HIGHLIGHTS */}
+        <section id="saigon-2028" className="skyline-panorama-section" aria-labelledby="saigon-title">
           <div className="section-header">
-            <div className="section-tag">OFFICIAL TEASER FILM • IBF SAIGON BRANCH</div>
-            <h2 className="section-title">Experience the Magic of Saigon 2028</h2>
+            <div className="section-tag">02 · DISCOVER SAIGON</div>
+            <h2 id="saigon-title" className="section-title">Meet your host city</h2>
             <p className="section-desc">
-              Press play to tour our host city — from Notre-Dame Cathedral and bustling street
-              food stalls to sunset cocktails and the Saigon River gala cruise.
+              Every silhouette in the Dragonbal 2028 crest tells a piece of the Saigon story awaiting
+              us in March 2028.
             </p>
           </div>
 
-          <div className="video-theater-frame">
-            {/* Decorative Dragon Corner Crests */}
-            <div className="theater-glow-ring" aria-hidden="true" />
-
-            <div className="video-stage-wrapper">
-              <video
-                ref={videoRef}
-                src="/assets/saigon-2028.mp4"
-                poster="/assets/poster-main.jpg"
-                playsInline
-                preload="metadata"
-                className="saigon-video-element"
-                onClick={togglePlay}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onTimeUpdate={(e) => {
-                  const t = e.currentTarget.currentTime;
-                  setCurrentTime(t);
-                  const currentChap = [...VIDEO_CHAPTERS]
-                    .reverse()
-                    .find((c) => t >= c.timeSec);
-                  if (currentChap) setActiveChapter(currentChap.id);
-                }}
-                onLoadedMetadata={(e) => {
-                  if (e.currentTarget.duration) {
-                    setDuration(e.currentTarget.duration);
-                  }
-                }}
-              />
-
-              {/* Big Play Overlay when Paused */}
-              {!isPlaying && (
-                <button
-                  type="button"
-                  onClick={togglePlay}
-                  className="video-big-play-overlay"
-                  aria-label="Play Official Dragonbal 2028 Saigon Promo Video"
-                >
-                  <div className="big-play-ring">
-                    <Play size={38} fill="currentColor" />
-                  </div>
-                  <span className="big-play-caption">
-                    Play Official Saigon 2028 Film (1:35)
-                  </span>
-                </button>
-              )}
-
-              {/* Custom Control Bar */}
-              <div className="video-controls-bar">
-                <button
-                  type="button"
-                  onClick={togglePlay}
-                  className="v-ctrl-btn"
-                  aria-label={isPlaying ? 'Pause' : 'Play'}
-                >
-                  {isPlaying ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}
-                </button>
-
-                <div
-                  className="v-progress-track"
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const ratio = Math.max(
-                      0,
-                      Math.min(1, (e.clientX - rect.left) / rect.width)
-                    );
-                    if (videoRef.current) {
-                      videoRef.current.currentTime = ratio * duration;
-                    }
-                  }}
-                >
-                  <div
-                    className="v-progress-fill"
-                    style={{
-                      transform: `scaleX(${Math.min(1, currentTime / (duration || 1))})`,
-                    }}
-                  />
-                </div>
-
-                <span className="v-time-readout">
-                  {Math.floor(currentTime / 60)}:
-                  {String(Math.floor(currentTime % 60)).padStart(2, '0')} /{' '}
-                  {Math.floor(duration / 60)}:
-                  {String(Math.floor(duration % 60)).padStart(2, '0')}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={toggleMute}
-                  className="v-ctrl-btn"
-                  aria-label={isMuted ? 'Unmute' : 'Mute'}
-                >
-                  {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={openFullscreen}
-                  className="v-ctrl-btn"
-                  aria-label="Fullscreen"
-                >
-                  <Maximize2 size={17} />
-                </button>
-              </div>
+          {/* Vector Recreated Saigon Skyline + Animated Scooters */}
+          <div className="skyline-art-stage">
+            <div className="skyline-dragon-overflight" aria-hidden="true">
+              <FlyingDragonSvg variant="crimson" />
             </div>
+            <SaigonSkylineSvg className="saigon-skyline-vector" />
 
-            {/* Interactive Scene Chapters */}
-            <div className="video-chapters-grid">
-              {VIDEO_CHAPTERS.map((chap) => {
-                const isActive = activeChapter === chap.id;
-                return (
-                  <button
-                    key={chap.id}
-                    type="button"
-                    onClick={() => jumpToChapter(chap)}
-                    className={`chapter-card ${isActive ? 'chapter-active' : ''}`}
-                  >
-                    <div className="chapter-thumb-wrap">
-                      <img src={chap.thumb} alt={chap.title} className="chapter-thumb" />
-                      <span className="chapter-time-badge">{chap.timeLabel}</span>
-                    </div>
-                    <div className="chapter-meta">
-                      <span className="chapter-vn">{chap.vietnamese}</span>
-                      <strong className="chapter-title">{chap.title}</strong>
-                      <p className="chapter-desc">{chap.desc}</p>
-                    </div>
-                  </button>
-                );
-              })}
+            {/* Animated Saigon Scooters Zipping Across Street Level */}
+            <div className="scooter-lane" aria-hidden="true">
+              <div className="scooter-rider scooter-1">🛵💨</div>
+              <div className="scooter-rider scooter-2">🛵✨</div>
+              <div className="scooter-rider scooter-3">🛵🏮</div>
             </div>
           </div>
-        </section>
 
+          {/* 4 Pillar Cards matching the Skyline & Video */}
+          <div className="saigon-pillars-grid">
+            <article className="pillar-card">
+              <span className="pillar-num">01 • THE ARENA</span>
+              <h3>IBF Flag Over Saigon</h3>
+              <p>
+                The world of Balut meets in Saigon on 1–5 March 2028. Registration and
+                the full tournament programme are coming soon.
+              </p>
+            </article>
+
+            <article className="pillar-card">
+              <span className="pillar-num">02 • THE SKYLINE</span>
+              <h3>Landmark 81 & Bitexco</h3>
+              <p>
+                From colonial Notre-Dame Cathedral and Bến Thành Market to the sky-high lotus helipad
+                of Bitexco and Landmark 81.
+              </p>
+            </article>
+
+            <article className="pillar-card">
+              <span className="pillar-num">03 • THE FLAVORS</span>
+              <h3>A Taste of Saigon</h3>
+              <p>
+                Discover street-side delicacies, sidewalk cà phê and the glowing Saigon River
+                in our welcome film. The event programme is still to come.
+              </p>
+            </article>
+
+            <article className="pillar-card">
+              <span className="pillar-num">04 • THE DATES</span>
+              <h3>1st – 5th March 2028</h3>
+              <p>
+                Dry-season golden sunshine in Southern Vietnam — mark your calendars now and prepare
+                for the ultimate VM in Saigon.
+              </p>
+            </article>
+          </div>
+          <div className="section-followup">
+            <a href="#balut-roller" className="section-next-link">
+              Feeling lucky? Try the five dice <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </section>
         {/* INTERACTIVE 5-DICE BALUT ROLLER LOUNGE */}
-        <section id="balut-roller" className="balut-lounge-section">
+        <section id="balut-roller" className="balut-lounge-section" aria-labelledby="dice-title">
           <div className="balut-lounge-card">
             <div className="balut-lounge-header">
               <div>
-                <div className="section-tag">WARM UP YOUR WRIST FOR MARCH 2028</div>
-                <h2 className="section-title">The 5 Sacred Dice of Dragonbal</h2>
+                <div className="section-tag">03 · A LITTLE FUN WHILE YOU WAIT</div>
+                <h2 id="dice-title" className="section-title">Roll with the dragon</h2>
                 <p className="section-desc">
-                  Notice the 5 dice in the official Dragonbal 2028 emblem? Click any die to{' '}
+                  Warm up with the five dice from our emblem. Tap any die to{' '}
                   <strong>LOCK</strong> it and roll for a Saigon Full House, Straight, or 5-of-a-Kind{' '}
                   <strong>DRAGONBAL</strong>!
                 </p>
@@ -794,71 +636,6 @@ export function App() {
           </div>
         </section>
 
-        {/* ANIMATED SAIGON SKYLINE & 2028 HIGHLIGHTS */}
-        <section id="saigon-2028" className="skyline-panorama-section">
-          <div className="section-header">
-            <div className="section-tag">1ST – 5TH MARCH 2028 • HO CHI MINH CITY</div>
-            <h2 className="section-title">The Icons Inside Our Emblem</h2>
-            <p className="section-desc">
-              Every silhouette in the Dragonbal 2028 crest tells a piece of the Saigon story awaiting
-              us in March 2028.
-            </p>
-          </div>
-
-          {/* Vector Recreated Saigon Skyline + Animated Scooters */}
-          <div className="skyline-art-stage">
-            <div className="skyline-dragon-overflight" aria-hidden="true">
-              <FlyingDragonSvg variant="crimson" />
-            </div>
-            <SaigonSkylineSvg className="saigon-skyline-vector" />
-
-            {/* Animated Saigon Scooters Zipping Across Street Level */}
-            <div className="scooter-lane" aria-hidden="true">
-              <div className="scooter-rider scooter-1">🛵💨</div>
-              <div className="scooter-rider scooter-2">🛵✨</div>
-              <div className="scooter-rider scooter-3">🛵🏮</div>
-            </div>
-          </div>
-
-          {/* 4 Pillar Cards matching the Skyline & Video */}
-          <div className="saigon-pillars-grid">
-            <article className="pillar-card">
-              <span className="pillar-num">01 • THE ARENA</span>
-              <h3>IBF Flag Over Saigon</h3>
-              <p>
-                Five days of world-class tournament play, crisp scorecards, and electric championship
-                rounds under the Dragonbal 2028 banner.
-              </p>
-            </article>
-
-            <article className="pillar-card">
-              <span className="pillar-num">02 • THE SKYLINE</span>
-              <h3>Landmark 81 & Bitexco</h3>
-              <p>
-                From colonial Notre-Dame Cathedral and Bến Thành Market to the sky-high lotus helipad
-                of Bitexco and Landmark 81.
-              </p>
-            </article>
-
-            <article className="pillar-card">
-              <span className="pillar-num">03 • THE FLAVORS</span>
-              <h3>Street Food & Night Cruise</h3>
-              <p>
-                Savor steaming street-side delicacies, sidewalk cà phê, and an unforgettable gala
-                dinner cruise along the glowing Saigon River.
-              </p>
-            </article>
-
-            <article className="pillar-card">
-              <span className="pillar-num">04 • THE DATES</span>
-              <h3>1st – 5th March 2028</h3>
-              <p>
-                Dry-season golden sunshine in Southern Vietnam — mark your calendars now and prepare
-                for the ultimate VM in Saigon.
-              </p>
-            </article>
-          </div>
-        </section>
       </main>
 
       {/* FOOTER WITH FULL POSTER PREVIEW */}
@@ -875,15 +652,23 @@ export function App() {
               <h3 className="footer-heading">DRAGONBAL 2028 • SAIGON, VIETNAM</h3>
               <p className="footer-copy">
                 1st – 5th March 2028 • International Balut Federation (IBF) World Championship.
-                Full registration, hotel packages, and tournament program launching soon.
+                Registration, hotel information, and the tournament programme are coming soon.
               </p>
             </div>
           </div>
 
           <div className="footer-links-col">
             <a href="#promo-video" className="btn-ghost-gold">
-              <Play size={15} /> Watch Video
+              <Play size={15} /> Watch film
             </a>
+            <button
+              type="button"
+              onClick={() => setShowLoader(true)}
+              className="btn-ghost-gold"
+              disabled={isPlaying}
+            >
+              <Sparkles size={15} /> Play dragon intro
+            </button>
             <button type="button" onClick={triggerDragonFire} className="btn-dragon-fire">
               <Flame size={15} /> Breathe Fire
             </button>

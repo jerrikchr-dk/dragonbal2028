@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { DongSonDrumSvg, FlyingDragonSvg } from './SvgArtworks';
 
 interface DragonLoaderProps {
@@ -17,13 +17,58 @@ export const DragonLoader: React.FC<DragonLoaderProps> = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
   const [exiting, setExiting] = useState(false);
   const [diceFaces, setDiceFaces] = useState([6, 6, 6, 6, 6]);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  const completedRef = useRef(false);
+  const skipRef = useRef<(() => void) | null>(null);
+  const titleId = useId();
+  const statusId = useId();
 
   useEffect(() => {
-    const start = performance.now();
-    const duration = 2200; // Snappy yet theatrical 2.2s ceremony
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    if (completedRef.current) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const previousFocus = document.activeElement;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const duration = 2200; // Opt-in theatrical ceremony, never a page-loading gate.
+    let rafId: number | null = null;
+    let exitTimeout: number | null = null;
+    let disposed = false;
+    let finishing = false;
+    let elapsedBeforePause = 0;
+    let startedAt = performance.now();
+
+    const cancelPending = () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      if (exitTimeout !== null) window.clearTimeout(exitTimeout);
+      rafId = null;
+      exitTimeout = null;
+    };
+    const complete = () => {
+      if (disposed || completedRef.current) return;
+      completedRef.current = true;
+      cancelPending();
+      if (dialog.open) dialog.close();
+      onCompleteRef.current();
+    };
+    const exit = (delay: number) => {
+      if (disposed || finishing || completedRef.current) return;
+      finishing = true;
+      cancelPending();
+      setExiting(true);
+      exitTimeout = window.setTimeout(complete, delay);
+    };
+    // Skipping also cancels a pending natural-exit timeout before completing.
+    skipRef.current = complete;
 
     const tick = (now: number) => {
-      const elapsed = now - start;
+      rafId = null;
+      if (disposed || finishing || completedRef.current || document.hidden) return;
+      const elapsed = elapsedBeforePause + now - startedAt;
       const pct = Math.min(100, Math.round((elapsed / duration) * 100));
       setProgress(pct);
 
@@ -41,16 +86,47 @@ export const DragonLoader: React.FC<DragonLoaderProps> = ({ onComplete }) => {
       }
 
       if (elapsed < duration) {
-        requestAnimationFrame(tick);
+        rafId = requestAnimationFrame(tick);
       } else {
-        setExiting(true);
-        setTimeout(onComplete, 480);
+        exit(480);
       }
     };
+    const onVisibilityChange = () => {
+      if (disposed || finishing || completedRef.current) return;
+      if (document.hidden) {
+        elapsedBeforePause += performance.now() - startedAt;
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        rafId = null;
+      } else {
+        startedAt = performance.now();
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+    const onMotionChange = () => {
+      if (reducedMotion.matches) complete();
+    };
 
-    const raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [onComplete]);
+    if (reducedMotion.matches) {
+      complete();
+    } else {
+      dialog.showModal();
+      if (!document.hidden) rafId = requestAnimationFrame(tick);
+      reducedMotion.addEventListener('change', onMotionChange);
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+
+    return () => {
+      disposed = true;
+      cancelPending();
+      skipRef.current = null;
+      reducedMotion.removeEventListener('change', onMotionChange);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (dialog.open) dialog.close();
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus({ preventScroll: true });
+      }
+    };
+  }, []);
 
   const stageIndex = Math.min(
     STAGES.length - 1,
@@ -58,20 +134,29 @@ export const DragonLoader: React.FC<DragonLoaderProps> = ({ onComplete }) => {
   );
 
   return (
-    <div className={`dragon-loader-overlay ${exiting ? 'loader-exit' : ''}`}>
+    <dialog
+      ref={dialogRef}
+      className={`dragon-loader-overlay ${exiting ? 'loader-exit' : ''}`}
+      aria-labelledby={titleId}
+      aria-describedby={statusId}
+      onCancel={(event) => {
+        event.preventDefault();
+        skipRef.current?.();
+      }}
+    >
       {/* Rotating Sacred Dong Son Drum Backdrop */}
-      <div className="loader-drum-backdrop">
+      <div className="loader-drum-backdrop" aria-hidden="true">
         <DongSonDrumSvg className="spin-slow" />
       </div>
 
       {/* Orbiting Flying Dragons */}
-      <div className="loader-dragon-top">
+      <div className="loader-dragon-top" aria-hidden="true">
         <FlyingDragonSvg variant="gold" />
       </div>
 
       <div className="loader-core">
         {/* Triple Elemental Vortex Rings (Jade, Gold, Crimson from logo) */}
-        <div className="vortex-ring-wrapper">
+        <div className="vortex-ring-wrapper" aria-hidden="true">
           <svg viewBox="0 0 260 260" className="vortex-svg">
             <circle
               cx="130"
@@ -115,8 +200,8 @@ export const DragonLoader: React.FC<DragonLoaderProps> = ({ onComplete }) => {
         </div>
 
         <div className="loader-badge">IBF WORLD CHAMPIONSHIP • SAIGON</div>
-        <h2 className="loader-title">DRAGONBAL 2028</h2>
-        <p className="loader-status">{STAGES[stageIndex]}</p>
+        <h2 id={titleId} className="loader-title">DRAGONBAL 2028</h2>
+        <p id={statusId} className="loader-status">{STAGES[stageIndex]}</p>
 
         {/* 5 Animated Balut Dice Loader Indicator */}
         <div className="loader-dice-strip" aria-hidden="true">
@@ -142,16 +227,14 @@ export const DragonLoader: React.FC<DragonLoaderProps> = ({ onComplete }) => {
           <span className="loader-pct">{progress}%</span>
           <button
             type="button"
-            onClick={() => {
-              setExiting(true);
-              setTimeout(onComplete, 200);
-            }}
+            onClick={() => skipRef.current?.()}
+            autoFocus
             className="loader-skip-btn"
           >
             Enter Saigon Now →
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };

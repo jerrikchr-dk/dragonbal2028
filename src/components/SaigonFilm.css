@@ -1,0 +1,325 @@
+.film-frame {
+  width: 100%;
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  border-radius: 26px;
+  background: linear-gradient(145deg, rgba(13, 43, 30, 0.96), rgba(7, 20, 15, 0.98));
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45), inset 0 0 0 5px rgba(250, 204, 21, 0.04);
+}
+
+.film-stage {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 880 / 480;
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  border-radius: 16px;
+  background: #000;
+  scroll-margin-block-start: var(--anchor-offset, 7rem);
+  scroll-margin-block-end: 1rem;
+}
+
+.film-stage[data-playing] {
+  border-color: rgba(250, 204, 21, 0.6);
+}
+
+.film-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 880 / 480;
+  object-fit: contain;
+  border-radius: inherit;
+  background: #000;
+}
+
+.film-play-prompt {
+  position: absolute;
+  inset: 0 0 3rem;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.film-play-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  max-width: calc(100% - 2rem);
+  min-height: 64px;
+  padding: 0.85rem 1.4rem;
+  border: 2px solid var(--gold);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--crimson-deep), #a83809);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  color: var(--ivory);
+  font: inherit;
+  font-size: clamp(1rem, 2.4vw, 1.25rem);
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 150ms var(--ease-out-strong);
+}
+
+.film-play-button svg {
+  flex-shrink: 0;
+}
+
+.film-watch-notes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  column-gap: 1rem;
+  margin: 0.4rem 0 0;
+}
+
+.film-hint {
+  flex: 1 1 18rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.film-open-link {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  min-height: 44px;
+  color: var(--gold);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.film-link-note {
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.film-status {
+  min-height: 1.5em;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.film-error {
+  margin-bottom: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-inline-start: 3px solid var(--gold);
+  border-radius: 4px;
+  background: rgba(250, 204, 21, 0.08);
+  color: var(--ivory);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.film-scenes {
+  border-top: 1px solid rgba(250, 204, 21, 0.2);
+}
+
+.film-scenes-summary {
+  min-height: 48px;
+  padding: 0.8rem 0.25rem;
+  color: var(--gold);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.film-scenes-summary::marker {
+  color: var(--gold);
+}
+
+.film-chapters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+  padding-top: 0.2rem;
+}
+
+.film-chapter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 88px;
+  padding: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-main);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 150ms var(--ease-out-strong), border-color 150ms ease, background-color 150ms ease;
+}
+
+.film-chapter[aria-current='true'] {
+  border-color: var(--gold);
+  background: rgba(16, 152, 72, 0.22);
+}
+
+.film-thumb-wrap {
+  position: relative;
+  flex: 0 0 88px;
+  width: 88px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--bg-deep);
+}
+
+.film-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.film-time {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.9);
+  color: var(--gold);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  line-height: 1.4;
+}
+
+.film-chapter-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.film-chapter-vietnamese {
+  color: var(--gold);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.film-chapter-title {
+  color: var(--ivory);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.film-chapter-desc {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.film-chapter-cue {
+  color: var(--gold);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.film-play-button:focus-visible,
+.film-video:focus-visible,
+.film-open-link:focus-visible,
+.film-scenes-summary:focus-visible,
+.film-chapter:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 4px;
+  transition: none;
+}
+
+.film-play-button:active:not(:focus-visible),
+.film-chapter:active:not(:focus-visible) {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .film-play-button:hover {
+    transform: scale(1.03);
+  }
+
+  .film-chapter:hover {
+    border-color: rgba(250, 204, 21, 0.55);
+    background: rgba(250, 204, 21, 0.08);
+  }
+}
+
+@media (min-width: 700px) {
+  .film-chapters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .film-chapters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .film-frame {
+    padding: 0.3rem;
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .film-stage {
+    border-radius: 11px;
+  }
+
+  .film-watch-notes,
+  .film-status,
+  .film-error,
+  .film-scenes {
+    margin-inline: 0.35rem;
+  }
+
+  .film-watch-notes {
+    padding-top: 0.35rem;
+  }
+
+  .film-hint {
+    flex-basis: 100%;
+  }
+}
+
+/* Keep both the picture and native controls reachable on a rotated phone. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .film-stage {
+    height: calc(100svh - var(--anchor-offset, 7rem) - 1rem);
+    aspect-ratio: auto;
+  }
+
+  .film-video {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .film-play-button,
+  .film-chapter {
+    transition: none;
+  }
+
+  .film-play-button:hover,
+  .film-play-button:active:not(:focus-visible),
+  .film-chapter:active:not(:focus-visible) {
+    transform: none;
+  }
+}
