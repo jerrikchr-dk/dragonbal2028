@@ -257,6 +257,16 @@ export function App() {
           </a>
         </nav>
 
+        <button
+          type="button"
+          onClick={handleShareEvent}
+          className="nav-mobile-share"
+          aria-label="Share Dragonbal 2028"
+        >
+          <Share2 size={15} />
+          <span>Share</span>
+        </button>
+
         <div className="nav-actions">
           <button
             type="button"
@@ -309,22 +319,19 @@ export function App() {
               </h1>
 
               <div className="event-essentials">
-                <p><Calendar size={18} aria-hidden="true" /> <strong>1–5 March 2028</strong></p>
-                <p><MapPin size={18} aria-hidden="true" /> Saigon · Ho Chi Minh City, Vietnam</p>
+                <p>
+                  <Calendar size={17} aria-hidden="true" /> <strong>1–5 March 2028</strong>
+                  <span className="essentials-sep" aria-hidden="true">•</span>
+                  <MapPin size={17} aria-hidden="true" /> <span>Saigon, Vietnam</span>
+                </p>
               </div>
 
               <p className="hero-lead">
-                Five dice. One unforgettable city. Join the world of Balut in the heart
-                of Vietnam — start with a little Saigon magic.
+                Five sacred dice in the heart of Ho Chi Minh City. Save the dates — registration
+                and programme details coming soon.
               </p>
 
-              {/* Action CTA Row */}
               <div className="hero-cta-row">
-                <a href="#promo-video" className="btn-primary-saigon">
-                  <Play size={18} fill="currentColor" />
-                  <span>Watch the film <span className="cta-duration">· 1:35</span></span>
-                </a>
-
                 <button
                   type="button"
                   onClick={handleShareEvent}
@@ -334,9 +341,7 @@ export function App() {
                   <span>Share the event</span>
                 </button>
               </div>
-              <p className="event-status">Save the dates. Registration and programme details coming soon.</p>
               <p className="share-feedback" role="status">{shareFeedback}</p>
-
             </div>
             {/* Left/Center Column: Official Emblem Medallion with Orbiting Rings */}
             <div className="hero-emblem-stage">
@@ -411,33 +416,12 @@ export function App() {
           </div>
         </section>
 
-        {/* ANIMATED TICKER RIBBON */}
-        <div className="dragon-marquee" aria-hidden="true">
-          <div className="dragon-marquee-track">
-            {Array.from({ length: 2 }).map((_, loopIdx) => (
-              <div key={loopIdx} className="dragon-marquee-group">
-                <span>🐉 DRAGONBAL 2028</span>
-                <span>★ SAIGON • VIETNAM ★</span>
-                <span>🎲 1ST – 5TH MARCH 2028</span>
-                <span>🏮 IBF WORLD CHAMPIONSHIP</span>
-                <span>🥂 CHÀO MỪNG ĐẾN SÀI GÒN</span>
-                <span>🔥 FIVE DICE • ONE DRAGON CROWN</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* OFFICIAL SAIGON PROMO VIDEO SHOWCASE */}
-        <section id="promo-video" className="video-showcase-section" aria-labelledby="film-title">
-          <div className="section-header">
-            <div className="section-tag">01 · WATCH THE FILM</div>
-            <h2 id="film-title" className="section-title">A little Saigon magic</h2>
-            <p className="section-desc">
-              A 95-second taste of our host city, from street food to the Saigon River.
-              Tap play and enjoy the welcome.
-            </p>
-          </div>
-
+        {/* OFFICIAL SAIGON PROMO VIDEO DIRECTLY BELOW HERO */}
+        <section
+          id="promo-video"
+          className="video-showcase-section"
+          aria-label="Official Saigon 2028 welcome film"
+        >
           <SaigonFilm onPlaybackChange={setIsPlaying} />
           <div className="film-followup">
             <a href="#saigon-2028" className="section-next-link">
@@ -482,6 +466,21 @@ export function App() {
           </div>
         </section>
 
+        {/* ANIMATED TICKER RIBBON */}
+        <div className="dragon-marquee" aria-hidden="true">
+          <div className="dragon-marquee-track">
+            {Array.from({ length: 2 }).map((_, loopIdx) => (
+              <div key={loopIdx} className="dragon-marquee-group">
+                <span>🐉 DRAGONBAL 2028</span>
+                <span>★ SAIGON • VIETNAM ★</span>
+                <span>🎲 1ST – 5TH MARCH 2028</span>
+                <span>🏮 IBF WORLD CHAMPIONSHIP</span>
+                <span>🥂 CHÀO MỪNG ĐẾN SÀI GÒN</span>
+                <span>🔥 FIVE DICE • ONE DRAGON CROWN</span>
+              </div>
+            ))}
+          </div>
+        </div>
         {/* ANIMATED SAIGON SKYLINE & 2028 HIGHLIGHTS */}
         <section id="saigon-2028" className="skyline-panorama-section" aria-labelledby="saigon-title">
           <div className="section-header">
